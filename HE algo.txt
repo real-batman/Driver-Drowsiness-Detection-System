@@ -1,0 +1,44 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+def enhance_dark_image(image):
+    # Convert image to grayscale if it's not already
+    if len(image.shape) == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Apply histogram equalization only to dark regions (pixels with low intensity)
+    dark_mask = (image < 50)  # Adjust this threshold according to your images
+    dark_histogram, _ = np.histogram(image[dark_mask], 256, [0, 256])
+
+    # Compute cumulative distribution function (CDF) for dark regions
+    dark_cdf = dark_histogram.cumsum()
+    dark_cdf_normalized = dark_cdf * float(dark_histogram.max()) / dark_cdf.max()
+
+    # Perform histogram equalization only on dark regions
+    equalized_dark_image = np.interp(image.flatten(), range(256), dark_cdf_normalized).reshape(image.shape)
+
+    # Combine equalized dark regions with original bright regions
+    enhanced_image = np.where(dark_mask, equalized_dark_image, image)
+
+    return enhanced_image.astype(np.uint8)
+
+# Load an image
+image = cv2.imread('input_image.jpg')
+
+# Enhance dark regions in the image
+enhanced_image = enhance_dark_image(image)
+
+# Display original and enhanced image
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+plt.title('Original Image')
+plt.axis('off')
+
+plt.subplot(1, 2, 2)
+plt.imshow(enhanced_image, cmap='gray')
+plt.title('Enhanced Image')
+plt.axis('off')
+
+plt.show()
